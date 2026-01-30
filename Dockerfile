@@ -60,8 +60,7 @@ COPY ghost/i18n/package.json ghost/i18n/package.json
 COPY ghost/parse-email-address/package.json ghost/parse-email-address/package.json
 
 COPY .github/scripts/install-deps.sh .github/scripts/install-deps.sh
-RUN --mount=type=cache,target=/usr/local/share/.cache/yarn,id=yarn-cache \
-    bash .github/scripts/install-deps.sh
+RUN bash .github/scripts/install-deps.sh
 
 # --------------------
 # Shade Builder
