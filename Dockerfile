@@ -223,5 +223,8 @@ COPY --from=activitypub-builder /home/ghost/apps/activitypub/dist apps/activityp
 COPY --from=admin-react-builder /home/ghost/ghost/core/core/built/admin ghost/core/core/built/admin
 COPY --from=parse-email-address-builder /home/ghost/ghost/parse-email-address/build ghost/parse-email-address/build
 
+# Create Ghost content directory for SQLite database and other content
+RUN mkdir -p /var/lib/ghost/content/data && chmod -R 755 /var/lib/ghost/content
+
 ENV NODE_ENV=production
 CMD ["node", "ghost/core/index.js"]
