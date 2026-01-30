@@ -223,4 +223,5 @@ COPY --from=activitypub-builder /home/ghost/apps/activitypub/dist apps/activityp
 COPY --from=admin-react-builder /home/ghost/ghost/core/core/built/admin ghost/core/core/built/admin
 COPY --from=parse-email-address-builder /home/ghost/ghost/parse-email-address/build ghost/parse-email-address/build
 
-CMD ["yarn", "dev"]
+ENV NODE_ENV=production
+CMD ["node", "ghost/core/index.js"]
