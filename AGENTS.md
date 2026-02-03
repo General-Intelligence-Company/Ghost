@@ -1,177 +1,80 @@
-# AGENTS.md
+# AGENTS.md - AI Agent Guidelines for Ghost
 
-This file provides guidance to AI Agents when working with code in this repository.
+This file provides guidelines for AI coding agents working on the Ghost codebase.
 
-## Package Manager
+## Overview
 
-**Always use `yarn` (v1) for all commands.** This repository uses yarn workspaces, not npm.
+Ghost is a professional publishing platform built as a **Yarn v1 + Nx monorepo**. This document helps AI agents navigate the codebase effectively and follow project conventions.
 
-## Monorepo Structure
+## Quick Start for AI Agents
 
-Ghost is a Yarn v1 + Nx monorepo with three workspace groups:
+### Package Manager
+**Always use `yarn` (v1)** - never npm. This repository uses yarn workspaces.
 
-### ghost/* - Core Ghost packages
-- **ghost/core** - Main Ghost application (Node.js/Express backend)
-  - Core server: `ghost/core/core/server/`
-  - Frontend rendering: `ghost/core/core/frontend/`
-- **ghost/admin** - Ember.js admin client (legacy, being migrated to React)
-- **ghost/i18n** - Centralized internationalization for all apps
+### Repository Structure
 
-### apps/* - React-based UI applications
-Two categories of apps:
+```
+ghost/
+├── core/           # Main Ghost backend (Node.js/Express)
+├── admin/          # Admin panel (Ember.js - legacy)
+└── i18n/           # Centralized internationalization
 
-**Admin Apps** (embedded in Ghost Admin):
-- `admin-x-settings`, `admin-x-activitypub` - Settings and integrations
-- `posts`, `stats` - Post analytics and site-wide analytics
-- Built with Vite + React + `@tanstack/react-query`
+apps/
+├── admin-x-*/      # New React-based admin components
+├── portal/         # Membership portal (React)
+├── comments-ui/    # Comments system (React)
+├── signup-form/    # Signup forms (React)
+├── sodo-search/    # Site search (React)
+├── announcement-bar/ # Announcement bar (React)
+└── shade/          # Design system (shadcn/ui + Radix)
 
-**Public Apps** (served to site visitors):
-- `portal`, `comments-ui`, `signup-form`, `sodo-search`, `announcement-bar`
-- Built as UMD bundles, loaded via CDN in site themes
-
-**Foundation Libraries**:
-- `admin-x-framework` - Shared API hooks, routing, utilities
-- `admin-x-design-system` - Legacy design system (being phased out)
-- `shade` - New design system (shadcn/ui + Radix UI + react-hook-form + zod)
-
-### e2e/ - End-to-end tests
-- Playwright-based E2E tests with Docker container isolation
-- See `e2e/CLAUDE.md` for detailed testing guidance
-
-## Common Commands
-
-### Development
-```bash
-yarn                           # Install dependencies
-yarn setup                     # First-time setup (installs deps + submodules)
-yarn dev                       # Start development (Docker backend + host frontend dev servers)
-yarn dev:legacy                # Local dev with legacy admin and without Docker (deprecated)
-yarn dev:legacy:debug          # yarn dev:legacy with DEBUG=@tryghost*,ghost:* enabled
+e2e/                # Playwright E2E tests
 ```
 
-### Building
+### Key Commands
+
 ```bash
-yarn build                     # Build all packages (Nx handles dependencies)
-yarn build:clean               # Clean build artifacts and rebuild
-```
+# Install dependencies
+yarn install
 
-### Testing
-```bash
-# Unit tests (from root)
-yarn test:unit                 # Run all unit tests in all packages
-
-# Ghost core tests (from ghost/core/)
-cd ghost/core
-yarn test:unit                 # Unit tests only
-yarn test:integration          # Integration tests
-yarn test:e2e                  # E2E API tests (not browser)
-yarn test:browser              # Playwright browser tests for core
-yarn test:all                  # All test types
-
-# E2E browser tests (from root)
-yarn test:e2e                  # Run e2e/ Playwright tests
-
-# Running a single test
-cd ghost/core
-yarn test:single test/unit/path/to/test.test.js
-```
-
-### Linting
-```bash
-yarn lint                      # Lint all packages
-cd ghost/core && yarn lint     # Lint Ghost core (server, shared, frontend, tests)
-cd ghost/admin && yarn lint    # Lint Ember admin
-```
-
-### Database
-```bash
-yarn knex-migrator migrate     # Run database migrations
-yarn reset:data                # Reset database with test data (1000 members, 100 posts)
-yarn reset:data:empty          # Reset database with no data
-```
-
-### Docker
-```bash
-yarn docker:build              # Build Docker images and delete ephemeral volumes
-yarn docker:dev                # Start Ghost in Docker with hot reload
-yarn docker:shell              # Open shell in Ghost container
-yarn docker:mysql              # Open MySQL CLI
-yarn docker:test:unit          # Run unit tests in Docker
-yarn docker:reset              # Reset all Docker volumes (including database) and restart
-```
-
-### How yarn dev works
-
-The `yarn dev` command uses a **hybrid Docker + host development** setup:
-
-**What runs in Docker:**
-- Ghost Core backend (with hot-reload via mounted source)
-- MySQL, Redis, Mailpit
-- Caddy gateway/reverse proxy
-
-**What runs on host:**
-- Frontend dev servers (Admin, Portal, Comments UI, etc.) in watch mode with HMR
-- Foundation libraries (shade, admin-x-framework, etc.)
-
-**Setup:**
-```bash
-# Start everything (Docker + frontend dev servers)
+# Run full dev environment (Docker + frontend dev servers)
 yarn dev
 
-# With optional services (uses Docker Compose file composition)
-yarn dev:analytics             # Include Tinybird analytics
-yarn dev:storage               # Include MinIO S3-compatible object storage
-yarn dev:all                   # Include all optional services
+# Run tests
+yarn test:unit                    # All unit tests
+yarn nx affected -t test          # Tests for affected packages
+cd ghost/core && yarn test:unit   # Core unit tests only
+
+# Run linting
+yarn lint                         # Lint all packages
+yarn nx affected -t lint          # Lint affected packages
+
+# Build all packages
+yarn build
+
+# Reset if things break
+yarn fix                          # Clean cache + node_modules + reinstall
+yarn nx reset                     # Reset Nx cache
 ```
 
-**Accessing Services:**
-- Ghost: `http://localhost:2368` (database: `ghost_dev`)
-- Mailpit UI: `http://localhost:8025` (email testing)
-- MySQL: `localhost:3306`
-- Redis: `localhost:6379`
-- Tinybird: `http://localhost:7181` (when analytics enabled)
-- MinIO Console: `http://localhost:9001` (when storage enabled)
-- MinIO S3 API: `http://localhost:9000` (when storage enabled)
+## Code Review Checklist for AI Agents
 
-## Architecture Patterns
+### Before Submitting Changes
+- [ ] Run `yarn lint` and fix all errors
+- [ ] Run tests in affected packages
+- [ ] Ensure TypeScript compiles without errors
+- [ ] Check for unused imports and variables
+- [ ] Verify no hardcoded secrets or credentials
+- [ ] Follow existing patterns in each package
 
-### Admin Apps Integration (Micro-Frontend)
+### Code Style Requirements
+- Use single quotes for strings
+- 4-space indentation
+- Semicolons required
+- Follow existing ESLint rules per-package
+- Use TypeScript strict mode where configured
 
-**Build Process:**
-1. Admin-x React apps build to `apps/*/dist` using Vite
-2. `ghost/admin/lib/asset-delivery` copies them to `ghost/core/core/built/admin/assets/*`
-3. Ghost admin serves from `/ghost/assets/{app-name}/{app-name}.js`
-
-**Runtime Loading:**
-- Ember admin uses `AdminXComponent` to dynamically import React apps
-- React components wrapped in Suspense with error boundaries
-- Apps receive config via `additionalProps()` method
-
-### Public Apps Integration
-
-- Built as UMD bundles to `apps/*/umd/*.min.js`
-- Loaded via `<script>` tags in theme templates (injected by `{{ghost_head}}`)
-- Configuration passed via data attributes
-
-### i18n Architecture
-
-**Centralized Translations:**
-- Single source: `ghost/i18n/locales/{locale}/{namespace}.json`
-- Namespaces: `ghost`, `portal`, `signup-form`, `comments`, `search`
-- 60+ supported locales
-
-### Build Dependencies (Nx)
-
-Critical build order (Nx handles automatically):
-1. `shade` + `admin-x-design-system` build
-2. `admin-x-framework` builds (depends on #1)
-3. Admin apps build (depend on #2)
-4. `ghost/admin` builds (depends on #3, copies via asset-delivery)
-5. `ghost/core` serves admin build
-
-## Code Guidelines
-
-### Commit Messages
+### Commit Message Format
 Follow the project's commit message format:
 - **1st line:** Max 80 chars, past tense, with emoji if user-facing
 - **2nd line:** [blank]
@@ -185,52 +88,124 @@ Follow the project's commit message format:
 - 🌐 i18n/translation
 - 💡 Other user-facing changes
 
-Example:
-```
-✨ Added dark mode toggle to admin settings
+### Testing Requirements
+- Unit tests required for new utility functions
+- Integration tests for API endpoints
+- E2E tests for critical user flows (see `e2e/AGENTS.md`)
+- Maintain existing test coverage
 
-fixes https://github.com/TryGhost/Ghost/issues/12345
-Users requested ability to switch themes for better accessibility
-```
+## Common Pitfalls to Avoid
 
-### When Working on Admin UI
+1. **Don't use npm** - Always use yarn
+2. **Don't modify package.json in sub-packages directly** - Use root yarn workspaces commands
+3. **Respect Nx cache boundaries** - Don't bypass the Nx build system
+4. **Check ESLint config per-package** - Rules vary between packages
+5. **Don't hardcode URLs** - Use config/environment variables
+6. **Respect the monorepo structure** - Changes may affect multiple packages
+7. **Don't commit submodule changes accidentally** - The pre-commit hook handles this
+
+## Dependencies Between Packages
+
+Key dependency relationships (Nx handles build order automatically):
+1. `shade` + `admin-x-design-system` build first
+2. `admin-x-framework` builds (depends on #1)
+3. Admin apps build (depend on #2)
+4. `ghost/admin` builds (depends on #3, copies via asset-delivery)
+5. `ghost/core` serves admin build
+
+## Navigation Tips
+
+### Backend (ghost/core)
+- **API routes:** `ghost/core/core/server/web/api/`
+- **Models:** `ghost/core/core/server/models/`
+- **Services:** `ghost/core/core/server/services/`
+- **Database schema:** `ghost/core/core/server/data/schema/`
+- **Migrations:** `ghost/core/core/server/data/migrations/`
+- **Frontend rendering:** `ghost/core/core/frontend/`
+
+### Admin UI
+- **Legacy Ember admin:** `ghost/admin/app/components/`
+- **New React admin apps:** `apps/admin-x-*/src/`
+- **Design system:** `apps/shade/src/components/`
+- **Framework utilities:** `apps/admin-x-framework/src/`
+
+### Tests
+- **Unit tests:** Look for `test/` or `__tests__/` directories in each package
+- **E2E tests:** `e2e/tests/`
+- **Browser tests:** `ghost/core/test/browser/`
+
+## When Making Changes
+
+### For Backend Changes
+1. Identify affected models, services, and API routes
+2. Check for existing patterns in similar code
+3. Add or update unit and integration tests
+4. Run `cd ghost/core && yarn test:unit` to verify
+
+### For Admin UI Changes
 - **New features:** Build in React (`apps/admin-x-*` or `apps/posts`)
 - **Use:** `admin-x-framework` for API hooks (`useBrowse`, `useEdit`, etc.)
 - **Use:** `shade` design system for new components (not admin-x-design-system)
 - **Translations:** Add to `ghost/i18n/locales/en/ghost.json`
 
-### When Working on Public UI
-- **Edit:** `apps/portal`, `apps/comments-ui`, etc.
-- **Translations:** Separate namespaces (`portal.json`, `comments.json`)
+### For Public Apps
+- **Edit:** `apps/portal`, `apps/comments-ui`, `apps/signup-form`, etc.
+- **Translations:** Use separate namespaces (`portal.json`, `comments.json`)
 - **Build:** UMD bundles for CDN distribution
 
-### When Working on Backend
-- **Core logic:** `ghost/core/core/server/`
-- **Database Schema:** `ghost/core/core/server/data/schema/`
-- **API routes:** `ghost/core/core/server/api/`
-- **Services:** `ghost/core/core/server/services/`
-- **Models:** `ghost/core/core/server/models/`
-- **Frontend & theme rendering:** `ghost/core/core/frontend/`
+### For Database Changes
+1. Create migration in `ghost/core/core/server/data/migrations/`
+2. Update schema in `ghost/core/core/server/data/schema/`
+3. Run `yarn knex-migrator migrate` to apply
+4. Add appropriate tests
 
-### Design System Usage
-- **New components:** Use `shade` (shadcn/ui-inspired)
-- **Legacy:** `admin-x-design-system` (being phased out, avoid for new work)
+## Environment Setup
 
-### Analytics (Tinybird)
-- **Local development:** `yarn docker:dev:analytics` (starts Tinybird + MySQL)
-- **Config:** Add Tinybird config to `ghost/core/config.development.json`
-- **Scripts:** `ghost/core/core/server/data/tinybird/scripts/`
-- **Datafiles:** `ghost/core/core/server/data/tinybird/`
-
-## Troubleshooting
-
-### Build Issues
+### Development with Docker (Recommended)
 ```bash
-yarn fix                       # Clean cache + node_modules + reinstall
-yarn build:clean               # Clean build artifacts
-yarn nx reset                  # Reset Nx cache
+yarn dev                    # Full dev environment
+yarn dev:analytics          # With Tinybird analytics
+yarn dev:storage            # With MinIO object storage
 ```
 
-### Test Issues
-- **E2E failures:** Check `e2e/CLAUDE.md` for debugging tips
-- **Docker issues:** `yarn docker:clean && yarn docker:build`
+**Services available:**
+- Ghost: `http://localhost:2368`
+- Mailpit UI: `http://localhost:8025`
+- MySQL: `localhost:3306`
+- Redis: `localhost:6379`
+
+### Required Environment Variables
+- See `.env.example` files in relevant packages
+- Database connection settings
+- Mail configuration
+- Storage configuration
+
+## Package-Specific Guidelines
+
+### apps/shade (Design System)
+See `apps/shade/AGENTS.md` for detailed guidelines including:
+- Component structure and naming
+- ShadCN component installation
+- Storybook documentation requirements
+
+### e2e (E2E Tests)
+See `e2e/AGENTS.md` for detailed guidelines including:
+- Page object patterns
+- Factory pattern for test data
+- Locator strategies (semantic first, then data-testid)
+- AAA test pattern
+
+## CI/CD Information
+
+The repository uses GitHub Actions for CI:
+- **Linting:** Runs on all PRs
+- **Testing:** Unit, integration, and E2E tests
+- **Security scanning:** Weekly CodeQL analysis
+- **Dependency updates:** Dependabot for weekly updates
+
+## Getting Help
+
+1. Check existing code patterns in similar files
+2. Review relevant AGENTS.md files in sub-packages
+3. Consult ADRs in `adr/` folder for architectural decisions
+4. Run `yarn nx graph` to visualize package dependencies

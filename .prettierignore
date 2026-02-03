@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+jspm_packages/
+
+# Build artifacts
+dist/
+build/
+umd/
+coverage/
+coverage*/
+.nyc_output/
+*.tgz
+
+# Ghost-specific build artifacts
+ghost/core/core/built/
+ghost/admin/dist/
+apps/*/dist/
+apps/*/umd/
+
+# Test artifacts
+test-results/
+playwright-report/
+playwright/
+
+# IDE and system files
+.idea/
+.vscode/
+*.sublime-*
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Nx cache
+.nx/
+.nxcache/
+
+# Docker
+.yarncache/
+.yarncachecopy/
+.yalc/
+
+# Configuration files (often have specific formatting requirements)
+*.min.js
+*.min.css
+
+# Generated files
+ghost/core/CHANGELOG.md
+ghost/core/LICENSE
+ghost/core/PRIVACY.md
+ghost/core/README.md
+
+# Submodules
+ghost/core/content/themes/casper/
+ghost/core/content/themes/source/
+
+# Tinybird
+.tinyb/
+.venv/
+
+# Lock files
+yarn.lock
+package-lock.json
+
+# Data files (may have specific formatting)
+ghost/i18n/locales/
