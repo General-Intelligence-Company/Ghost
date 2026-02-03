@@ -2,10 +2,100 @@
 # This file defines code ownership for automatic review assignment
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
-# E2E Test Ownership
-# The top-level e2e directory requires review from designated owners
+# =============================================================================
+# Default Ownership
+# =============================================================================
+# All files require review from the core team by default
+* @TryGhost/core
+
+# =============================================================================
+# Ghost Core (Backend)
+# =============================================================================
+/ghost/core/ @TryGhost/core
+
+# API Endpoints
+/ghost/core/core/server/api/ @TryGhost/core
+
+# Database Schema & Migrations
+/ghost/core/core/server/data/schema/ @TryGhost/core
+/ghost/core/core/server/data/migrations/ @TryGhost/core
+
+# =============================================================================
+# Ghost Admin (Ember.js)
+# =============================================================================
+/ghost/admin/ @TryGhost/core
+
+# =============================================================================
+# React Applications (Admin-X)
+# =============================================================================
+/apps/admin-x-settings/ @TryGhost/core
+/apps/admin-x-framework/ @TryGhost/core
+/apps/admin-x-design-system/ @TryGhost/core
+/apps/shade/ @TryGhost/core
+
+# =============================================================================
+# Public-Facing Apps
+# =============================================================================
+/apps/portal/ @TryGhost/core
+/apps/comments-ui/ @TryGhost/core
+/apps/signup-form/ @TryGhost/core
+/apps/sodo-search/ @TryGhost/core
+/apps/announcement-bar/ @TryGhost/core
+
+# =============================================================================
+# ActivityPub
+# =============================================================================
+/apps/activitypub/ @TryGhost/core
+
+# =============================================================================
+# Analytics Apps
+# =============================================================================
+/apps/posts/ @TryGhost/core
+/apps/stats/ @TryGhost/core
+
+# =============================================================================
+# Internationalization
+# =============================================================================
+/ghost/i18n/ @TryGhost/core
+
+# =============================================================================
+# E2E Testing
+# =============================================================================
+# The e2e directory requires review from designated test owners
 /e2e/ @9larsons @cmraible @ibalosh
 
+# =============================================================================
 # Tinybird Analytics
+# =============================================================================
 # Tinybird data pipelines and services require review from designated owners
 **/tinybird/ @9larsons @cmraible @troyciesco
+
+# =============================================================================
+# CI/CD & GitHub Configuration
+# =============================================================================
+/.github/workflows/ @TryGhost/core
+/.github/actions/ @TryGhost/core
+/.github/CODEOWNERS @TryGhost/core
+
+# =============================================================================
+# Documentation
+# =============================================================================
+# AGENTS.md files for AI assistants
+**/AGENTS.md @TryGhost/core
+**/CLAUDE.md @TryGhost/core
+/README.md @TryGhost/core
+
+# =============================================================================
+# Configuration Files
+# =============================================================================
+/package.json @TryGhost/core
+/yarn.lock @TryGhost/core
+/nx.json @TryGhost/core
+/tsconfig.json @TryGhost/core
+/.eslintrc.js @TryGhost/core
+
+# Docker Configuration
+/Dockerfile @TryGhost/core
+/compose*.yml @TryGhost/core
+/compose*.yaml @TryGhost/core
+/docker/ @TryGhost/core
