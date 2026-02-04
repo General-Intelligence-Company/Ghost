@@ -65,6 +65,15 @@ typings/
 # dotenv environment variables file
 .env
 
+# Security - sensitive files
+*.pem
+*.key
+secrets/
+.env.local
+.env.*.local
+credentials.json
+serviceaccount.json
+
 # IDE
 .idea/
 *.iml
