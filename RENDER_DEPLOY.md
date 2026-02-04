@@ -69,51 +69,38 @@ For paid memberships and subscriptions:
 
 ## Architecture
 
-The `render.yaml` Blueprint deploys:
+The `render.yaml` Blueprint deploys a single Ghost web service using the official Ghost Docker image (`ghost:5-alpine`).
 
-1. **Ghost Web Service** - The main Ghost application
-   - Node.js runtime
-   - Persistent disk for content (images, themes, uploads)
-   - Auto-scaling available on higher plans
+**Key features:**
+- Uses the official Ghost Docker image for reliability
+- SQLite database for simplicity (stored on persistent disk)
+- Persistent disk for content (images, themes, uploads, database)
+- Health check endpoint configured
+- Port 10000 (Render's default)
 
-2. **MySQL Private Service** - Database backend
-   - MySQL 8.0 running in Docker
-   - Persistent disk for data storage
-   - Only accessible within your Render private network
+## Database
 
-## Alternative: SQLite Configuration
+This configuration uses **SQLite** by default, which is suitable for:
+- Personal blogs
+- Small to medium traffic sites
+- Development and testing
 
-For simpler deployments or testing, you can use SQLite instead of MySQL. This eliminates the need for a separate database service but is **not recommended for production** due to performance and concurrency limitations.
+The SQLite database is stored on the persistent disk at `/var/lib/ghost/content/data/ghost.db`.
 
-To use SQLite, modify `render.yaml`:
+### Using MySQL Instead
 
-```yaml
-services:
-  - type: web
-    name: ghost
-    # ... other config ...
-    envVars:
-      # Replace MySQL config with SQLite
-      - key: database__client
-        value: sqlite3
-      - key: database__connection__filename
-        value: /var/data/ghost/content/data/ghost.db
-```
-
-Then remove the MySQL private service section.
-
-## Alternative: External MySQL
-
-Instead of running MySQL on Render, you can use an external MySQL-compatible database:
+For higher traffic sites or production deployments, you may want to use MySQL. You can use an external MySQL-compatible database:
 
 - [PlanetScale](https://planetscale.com/) - Serverless MySQL
 - [TiDB Cloud](https://tidbcloud.com/) - MySQL-compatible, free tier available
 - [AWS RDS](https://aws.amazon.com/rds/mysql/) - Managed MySQL
 - [DigitalOcean Managed Databases](https://www.digitalocean.com/products/managed-databases-mysql)
 
-Update the database environment variables accordingly:
+Update the database environment variables in `render.yaml`:
 
 ```yaml
+- key: database__client
+  value: mysql2
 - key: database__connection__host
   value: your-external-host.com
 - key: database__connection__port
@@ -128,7 +115,7 @@ Update the database environment variables accordingly:
 
 ## Persistent Storage
 
-Ghost content (images, themes, files) is stored on a Render Disk mounted at `/var/data/ghost/content`. The default size is 10GB but can be increased in the Render dashboard.
+Ghost content (images, themes, files, SQLite database) is stored on a Render Disk mounted at `/var/lib/ghost/content`. The default size is 10GB but can be increased in the Render dashboard.
 
 **Important:** Render Disks are tied to a single service instance. For high-availability deployments, consider using external object storage like:
 - AWS S3
@@ -144,41 +131,41 @@ Ghost content (images, themes, files) is stored on a Render Disk mounted at `/va
 
 ## Upgrading Ghost
 
-To upgrade Ghost:
+The deployment uses the `ghost:5-alpine` Docker image. To upgrade:
 
-1. Pull the latest changes from the Ghost repository
-2. Push to your deployment branch
+1. Update the `FROM` line in `Dockerfile.render` to a newer Ghost version
+2. Commit and push the changes
 3. Render will automatically rebuild and deploy
 
 ## Troubleshooting
 
-### Build Failures
+### Container Startup Issues
 
-- Ensure Node.js version 22 is available (set via `NODE_VERSION` env var)
-- Check build logs for yarn/npm errors
-- Verify all dependencies are properly listed in `package.json`
-
-### Database Connection Issues
-
-- Verify the MySQL service is running (check service logs)
-- Ensure environment variables are correctly set
-- MySQL needs 30-60 seconds to initialize on first deployment
-
-### Content Not Persisting
-
-- Verify the disk is properly mounted at `/var/data/ghost/content`
-- Check disk usage in Render dashboard (may need to increase size)
+- Check the Render logs for error messages
+- Ensure the `url` environment variable is set correctly
+- Ghost may take 1-2 minutes to start on first deployment (database initialization)
 
 ### Health Check Failures
 
 - Ghost may take 1-2 minutes to start on first deployment
-- Increase health check timeout if needed
+- The health check has a 60-second start period to allow for initialization
 - Check application logs for startup errors
+
+### Content Not Persisting
+
+- Verify the disk is properly mounted at `/var/lib/ghost/content`
+- Check disk usage in Render dashboard (may need to increase size)
+
+### Database Issues
+
+- For SQLite: Check that the `/var/lib/ghost/content/data/` directory exists
+- For MySQL: Verify connection settings and that the database is accessible
 
 ## Resources
 
 - [Ghost Documentation](https://ghost.org/docs/)
 - [Ghost Configuration](https://ghost.org/docs/config/)
+- [Official Ghost Docker Image](https://hub.docker.com/_/ghost)
 - [Render Documentation](https://render.com/docs)
 - [Render Blueprints](https://render.com/docs/blueprint-spec)
 

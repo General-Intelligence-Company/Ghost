@@ -1,63 +1,29 @@
 # Render.com deployment configuration for Ghost
 # See https://render.com/docs/blueprint-spec for documentation
 #
-# IMPORTANT: Render does not have native MySQL support. This configuration uses
-# a Docker-based MySQL private service. Alternatively, you can use an external
-# MySQL provider like PlanetScale, TiDB Cloud, or AWS RDS.
-#
-# For simpler deployments, Ghost also supports SQLite which doesn't require
-# a separate database service (see RENDER_DEPLOY.md for details).
+# This configuration uses the official Ghost Docker image for simplicity
+# and reliability. It uses SQLite for the database which is stored on
+# a persistent disk.
 
 services:
-  # Ghost Web Service
   - type: web
     name: ghost
-    runtime: node
+    runtime: docker
     plan: starter
     region: oregon
-    buildCommand: |
-      yarn install --frozen-lockfile
-      yarn build
-    startCommand: |
-      cd ghost/core && yarn knex-migrator init && node index.js
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
     envVars:
-      # Node environment
-      - key: NODE_ENV
-        value: production
-      - key: NODE_VERSION
-        value: "22"
-
       # Ghost URL - REQUIRED: Set this to your Render URL (e.g., https://ghost-xxxx.onrender.com)
       # or your custom domain
       - key: url
         sync: false
 
-      # Database configuration - connecting to MySQL private service
+      # Database configuration - using SQLite for simplicity
       - key: database__client
-        value: mysql2
-      - key: database__connection__host
-        value: mysql
-      - key: database__connection__port
-        value: "3306"
-      - key: database__connection__user
-        value: ghost
-      - key: database__connection__password
-        fromService:
-          name: mysql
-          type: pserv
-          envVarKey: MYSQL_PASSWORD
-      - key: database__connection__database
-        value: ghost
-
-      # Server configuration - Render uses port 10000 by default for web services
-      - key: server__host
-        value: "0.0.0.0"
-      - key: server__port
-        value: "10000"
-
-      # Content path - use Render's persistent disk for uploads
-      - key: paths__contentPath
-        value: /var/data/ghost/content
+        value: sqlite3
+      - key: database__connection__filename
+        value: /var/lib/ghost/content/data/ghost.db
 
       # Mail configuration (configure these in Render dashboard)
       # Ghost supports various mail providers: SMTP, Mailgun, SendGrid, etc.
@@ -80,33 +46,11 @@ services:
       - key: stripe__publicKey
         sync: false
 
-    # Persistent disk for Ghost content (images, themes, uploads)
+    # Persistent disk for Ghost content (images, themes, uploads, SQLite database)
     disk:
       name: ghost-content
-      mountPath: /var/data/ghost/content
+      mountPath: /var/lib/ghost/content
       sizeGB: 10
 
     # Health check endpoint
     healthCheckPath: /ghost/api/admin/site/
-
-  # MySQL Database (Private Service)
-  # Based on https://github.com/render-examples/mysql
-  - type: pserv
-    name: mysql
-    runtime: docker
-    plan: starter
-    region: oregon
-    dockerfilePath: ./docker/render-mysql/Dockerfile
-    envVars:
-      - key: MYSQL_ROOT_PASSWORD
-        generateValue: true
-      - key: MYSQL_DATABASE
-        value: ghost
-      - key: MYSQL_USER
-        value: ghost
-      - key: MYSQL_PASSWORD
-        generateValue: true
-    disk:
-      name: mysql-data
-      mountPath: /var/lib/mysql
-      sizeGB: 10
