@@ -222,6 +222,94 @@ Users requested ability to switch themes for better accessibility
 - **Scripts:** `ghost/core/core/server/data/tinybird/scripts/`
 - **Datafiles:** `ghost/core/core/server/data/tinybird/`
 
+## CI/CD Pipeline
+
+### Overview
+The CI pipeline runs on every push to `main` and on all pull requests. It uses GitHub Actions with Nx-based caching for optimal performance.
+
+### CI Jobs
+The main CI workflow (`.github/workflows/ci.yml`) includes:
+- **Setup**: Installs dependencies, caches node_modules and Nx cache
+- **Lint**: Runs ESLint on affected packages (`yarn nx affected -t lint`)
+- **Unit Tests**: Runs unit tests on affected packages
+- **Acceptance Tests**: Runs integration/E2E API tests (MySQL & SQLite)
+- **Browser Tests**: Playwright-based browser tests (on main or with `browser-tests` label)
+- **Admin Tests**: Ember admin client tests
+- **E2E Tests**: Full end-to-end tests with Docker
+- **Tinybird Tests**: Analytics datafile validation
+
+### Additional CI Workflows
+- **TypeScript Check** (`.github/workflows/typecheck.yml`): Explicit type checking across all packages
+- **Security Scan** (`.github/workflows/security.yml`): CodeQL analysis and npm audit
+- **Migration Review**: Validates database migration files
+
+### Fixing CI Failures
+
+**Lint failures:**
+```bash
+yarn lint                      # Run linting locally
+yarn nx affected -t lint       # Run on affected packages only
+```
+
+**Unit test failures:**
+```bash
+yarn test:unit                 # Run all unit tests
+cd ghost/core && yarn test:single test/unit/path/to/test.test.js
+```
+
+**Type check failures:**
+```bash
+yarn nx run-many -t typecheck  # Run TypeScript checks
+```
+
+**E2E failures:**
+- Check the Playwright report artifact in GitHub Actions
+- Run locally: `yarn test:e2e`
+- See `e2e/CLAUDE.md` for detailed debugging tips
+
+### Dependabot
+Automated dependency updates are configured via `.github/dependabot.yml`:
+- **npm packages**: Weekly updates, grouped by minor/patch versions
+- **GitHub Actions**: Weekly updates for action versions
+
+## Security Guidelines
+
+### Automated Security Scanning
+- **CodeQL**: Runs weekly and on PRs to detect security vulnerabilities
+- **npm audit**: Checks for known vulnerabilities in dependencies
+
+### Security Best Practices
+- **Never commit secrets**: Use environment variables for API keys, passwords, etc.
+- **Review dependencies**: Check new dependencies for known vulnerabilities
+- **Input validation**: Always validate and sanitize user input
+- **SQL injection**: Use parameterized queries (Knex.js handles this)
+- **XSS prevention**: Sanitize HTML output, use proper escaping
+
+### Reporting Security Issues
+Report security vulnerabilities via responsible disclosure to security@ghost.org
+
+## Code Style
+
+### Prettier Configuration
+The project uses Prettier for consistent code formatting (`.prettierrc`):
+- Single quotes
+- 4-space indentation
+- 120 character line width
+- No trailing commas
+- No bracket spacing
+
+### ESLint
+ESLint is configured across all packages with shared rules:
+- Ghost-specific plugin (`eslint-plugin-ghost`)
+- React plugin for frontend apps
+- Run `yarn lint` to check all packages
+
+### Style Guidelines
+- **JavaScript/TypeScript**: Follow ESLint rules, use TypeScript for new code
+- **React components**: Use functional components with hooks
+- **CSS**: Use Tailwind CSS in new React apps (`shade` design system)
+- **Imports**: Use absolute imports where configured, group imports logically
+
 ## Troubleshooting
 
 ### Build Issues
@@ -234,3 +322,8 @@ yarn nx reset                  # Reset Nx cache
 ### Test Issues
 - **E2E failures:** Check `e2e/CLAUDE.md` for debugging tips
 - **Docker issues:** `yarn docker:clean && yarn docker:build`
+
+### CI-Specific Issues
+- **Cache issues:** CI caches may become stale; re-run the job or wait for cache expiry
+- **Flaky tests:** Add `browser-tests` label to PR to run full browser test suite
+- **Dependency mismatches:** Ensure `yarn.lock` is committed and up-to-date
