@@ -1,0 +1,13 @@
+node_modules
+.next
+dist
+build
+coverage
+*.min.js
+*.min.css
+ghost/admin/assets
+ghost/portal/umd
+ghost/sodo-search/umd
+ghost/comments-ui/umd
+ghost/signup-form/umd
+yarn.lock

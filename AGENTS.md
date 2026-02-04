@@ -1,4 +1,4 @@
-# AGENTS.md
+# AGENTS.md - AI Agent Guidelines for Ghost
 
 This file provides guidance to AI Agents when working with code in this repository.
 
@@ -81,6 +81,12 @@ yarn test:single test/unit/path/to/test.test.js
 yarn lint                      # Lint all packages
 cd ghost/core && yarn lint     # Lint Ghost core (server, shared, frontend, tests)
 cd ghost/admin && yarn lint    # Lint Ember admin
+```
+
+### Type Checking
+```bash
+yarn nx affected -t typecheck  # Type check affected packages
+yarn nx run-many -t typecheck  # Type check all packages
 ```
 
 ### Database
@@ -221,6 +227,37 @@ Users requested ability to switch themes for better accessibility
 - **Config:** Add Tinybird config to `ghost/core/config.development.json`
 - **Scripts:** `ghost/core/core/server/data/tinybird/scripts/`
 - **Datafiles:** `ghost/core/core/server/data/tinybird/`
+
+## CI/CD Workflows
+
+### Available Workflows
+- **CI** (`ci.yml`) - Main CI pipeline with lint, test, and build jobs
+- **TypeScript Check** (`typecheck.yml`) - Type checking for affected packages on PRs and pushes to main
+- **Security** (`security.yml`) - CodeQL security analysis (runs weekly and on PRs to main)
+
+### Pre-commit Hooks
+This repository uses Husky for Git hooks:
+- **pre-commit**: Runs `lint-staged` to lint changed JavaScript files
+
+To skip hooks temporarily (not recommended):
+```bash
+git commit --no-verify -m "message"
+```
+
+## Security Guidelines
+
+### Sensitive Files
+The following patterns are ignored by Git to prevent accidental credential commits:
+- `*.pem`, `*.key`, `*.p12`, `*.pfx` - Certificate/key files
+- `secrets/`, `credentials/`, `.secrets` - Secret directories
+- `*.secret` - Secret files
+- `.env` files (except specific allowed ones)
+
+### Never Commit
+- API keys or tokens
+- Database credentials
+- Private keys or certificates
+- Environment-specific configuration with secrets
 
 ## Troubleshooting
 
