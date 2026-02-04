@@ -1,13 +1,18 @@
-FROM ghost:latest
+# Use official Ghost image for production deployment
+FROM ghost:5-alpine
 
-# Create content directory with proper structure
-RUN mkdir -p /var/lib/ghost/content/data
-
-# Set environment for production
+# Set environment variables for production
 ENV NODE_ENV=production
 
-# Ghost runs on port 2368
-EXPOSE 2368
+# Ghost listens on port 2368 by default, but Render expects 10000
+ENV PORT=10000
+ENV server__port=10000
 
-# Default command - Ghost image handles this automatically
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/ghost/api/admin/site/ || exit 1
+
+EXPOSE 10000
+
+# Start Ghost
 CMD ["node", "current/index.js"]

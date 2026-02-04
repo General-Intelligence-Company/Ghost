@@ -11,7 +11,7 @@ services:
     runtime: docker
     plan: starter
     region: oregon
-    dockerfilePath: ./Dockerfile.render
+    dockerfilePath: ./Dockerfile
     dockerContext: .
     envVars:
       # Ghost URL - REQUIRED: Set this to your Render URL (e.g., https://ghost-xxxx.onrender.com)
