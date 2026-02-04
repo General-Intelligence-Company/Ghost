@@ -64,6 +64,12 @@ typings/
 
 # dotenv environment variables file
 .env
+.env.local
+.env.*.local
+
+# Security - private keys and secrets
+*.pem
+secrets/
 
 # IDE
 .idea/

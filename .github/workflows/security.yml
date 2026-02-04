@@ -1,0 +1,98 @@
+name: Security
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+      - 'v[0-9]+.*'
+      - '[0-9]+.x'
+  schedule:
+    # Run security scans weekly on Mondays at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+
+env:
+  FORCE_COLOR: 1
+  NODE_VERSION: 22.18.0
+
+concurrency:
+  group: security-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # Use default queries plus security-extended queries
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
+
+      - uses: tryghost/actions/actions/slack-build@main
+        if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          status: ${{ job.status }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        env:
+          FORCE_COLOR: 0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run yarn audit
+        run: yarn audit --groups dependencies --level high
+        continue-on-error: true
+
+      - name: Check for critical vulnerabilities
+        run: |
+          # Run audit and capture output
+          AUDIT_OUTPUT=$(yarn audit --groups dependencies --json 2>/dev/null || true)
+
+          # Check for critical vulnerabilities
+          CRITICAL_COUNT=$(echo "$AUDIT_OUTPUT" | grep -c '"severity":"critical"' || echo "0")
+
+          if [ "$CRITICAL_COUNT" -gt "0" ]; then
+            echo "::error::Found $CRITICAL_COUNT critical vulnerabilities in dependencies"
+            echo "$AUDIT_OUTPUT" | grep '"severity":"critical"' || true
+            exit 1
+          else
+            echo "No critical vulnerabilities found in production dependencies"
+          fi
+
+      - uses: tryghost/actions/actions/slack-build@main
+        if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          status: ${{ job.status }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
