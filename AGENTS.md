@@ -1,6 +1,20 @@
-# AGENTS.md
+# AGENTS.md - AI Agent Guidelines for Ghost
 
-This file provides guidance to AI Agents when working with code in this repository.
+This document provides guidelines for AI agents working with the Ghost codebase.
+
+## Quick Navigation
+
+### Primary Entry Points
+- **Backend API**: `ghost/core/core/server/` - Express.js server
+- **Admin Panel**: `ghost/admin/` - Ember.js admin interface (legacy, being migrated)
+- **React Apps**: `apps/` - Modern React applications (admin-x-*, comments-ui, portal, etc.)
+- **Shared Libraries**: `ghost/` - Core packages and utilities
+
+### Key Configuration Files
+- `package.json` - Root workspace configuration
+- `nx.json` - Nx build system configuration
+- `yarn.lock` - Dependency lock file
+- `.github/workflows/ci.yml` - Main CI pipeline
 
 ## Package Manager
 
@@ -38,129 +52,146 @@ Two categories of apps:
 - Playwright-based E2E tests with Docker container isolation
 - See `e2e/CLAUDE.md` for detailed testing guidance
 
-## Common Commands
+## Testing Requirements
 
-### Development
+### Before Submitting Changes
+1. **Run linting**: `yarn lint` or `yarn nx affected -t lint`
+2. **Run type checking**: `yarn nx affected -t typecheck`
+3. **Run relevant tests**: `yarn nx affected -t test`
+4. **For Ghost core changes**: Run integration tests in `ghost/core/test/`
+
+### Test Categories
+| Category | Command | When to Run |
+|----------|---------|-------------|
+| Unit Tests | `yarn test:unit` | All code changes |
+| Integration Tests | `cd ghost/core && yarn test:integration` | API/database changes |
+| E2E Browser | `yarn test:browser` | UI/frontend changes |
+| E2E API | `cd ghost/core && yarn test:e2e` | API endpoint changes |
+
+### Test File Locations
+- Unit tests: Adjacent to source files or in `test/unit/`
+- Integration tests: `ghost/core/test/integration/`
+- E2E tests: `ghost/core/test/e2e-*` and `e2e/`
+
+### Running a Single Test
 ```bash
-yarn                           # Install dependencies
-yarn setup                     # First-time setup (installs deps + submodules)
-yarn dev                       # Start development (Docker backend + host frontend dev servers)
-yarn dev:legacy                # Local dev with legacy admin and without Docker (deprecated)
-yarn dev:legacy:debug          # yarn dev:legacy with DEBUG=@tryghost*,ghost:* enabled
-```
-
-### Building
-```bash
-yarn build                     # Build all packages (Nx handles dependencies)
-yarn build:clean               # Clean build artifacts and rebuild
-```
-
-### Testing
-```bash
-# Unit tests (from root)
-yarn test:unit                 # Run all unit tests in all packages
-
-# Ghost core tests (from ghost/core/)
-cd ghost/core
-yarn test:unit                 # Unit tests only
-yarn test:integration          # Integration tests
-yarn test:e2e                  # E2E API tests (not browser)
-yarn test:browser              # Playwright browser tests for core
-yarn test:all                  # All test types
-
-# E2E browser tests (from root)
-yarn test:e2e                  # Run e2e/ Playwright tests
-
-# Running a single test
 cd ghost/core
 yarn test:single test/unit/path/to/test.test.js
 ```
 
-### Linting
-```bash
-yarn lint                      # Lint all packages
-cd ghost/core && yarn lint     # Lint Ghost core (server, shared, frontend, tests)
-cd ghost/admin && yarn lint    # Lint Ember admin
+## Code Review Checklist
+
+### General
+- [ ] Code follows existing patterns in the codebase
+- [ ] No console.log statements in production code
+- [ ] Error handling is appropriate
+- [ ] Comments explain "why" not "what"
+
+### Backend (Node.js/Express)
+- [ ] API endpoints follow RESTful conventions
+- [ ] Database queries are optimized (check for N+1)
+- [ ] Proper error responses with appropriate status codes
+- [ ] Input validation on all endpoints
+
+### Frontend (React/Ember)
+- [ ] Components are properly typed (TypeScript)
+- [ ] No inline styles (use CSS modules or existing classes)
+- [ ] Accessibility considerations (ARIA labels, keyboard nav)
+- [ ] Responsive design checked
+
+### Database/Migrations
+- [ ] Migrations are reversible
+- [ ] Indexes added for frequently queried columns
+- [ ] Foreign key constraints where appropriate
+
+## Common Pitfalls
+
+### 1. Monorepo Dependencies
+- Always use `yarn workspace` commands for adding dependencies
+- Check which package you're adding deps to
+- Shared dependencies go in root `package.json`
+
+### 2. Build Order
+- The Nx build system handles dependency ordering
+- Use `yarn nx affected` to build/test only changed packages
+- Don't bypass Nx for builds
+
+### 3. Environment Variables
+- Never commit secrets
+- Use `.env.example` as a template
+- Ghost core uses `config/` directory for configuration
+
+### 4. Testing Database
+- Integration tests use a separate test database
+- Always clean up test data
+- Don't depend on test execution order
+
+## Architecture Patterns
+
+### Ghost Core API Structure
+```
+ghost/core/core/server/
+├── api/          # API endpoints (versioned)
+├── data/         # Database layer (Bookshelf ORM)
+├── models/       # Data models
+├── services/     # Business logic
+└── web/          # Express routes and middleware
 ```
 
-### Database
+### React App Structure (apps/*)
+```
+apps/admin-x-*/
+├── src/
+│   ├── components/  # React components
+│   ├── hooks/       # Custom hooks
+│   ├── utils/       # Utility functions
+│   └── api/         # API client code
+└── test/            # Test files
+```
+
+## Workflow Commands
+
+### Development
 ```bash
-yarn knex-migrator migrate     # Run database migrations
-yarn reset:data                # Reset database with test data (1000 members, 100 posts)
-yarn reset:data:empty          # Reset database with no data
+yarn dev              # Start all dev servers (Docker + host)
+yarn dev:legacy       # Start without Docker (deprecated)
+yarn dev:analytics    # Include Tinybird analytics
+yarn dev:storage      # Include MinIO S3-compatible storage
+yarn dev:all          # Include all optional services
+```
+
+### Testing
+```bash
+yarn test             # Run all tests
+yarn test:unit        # Unit tests only
+yarn lint             # Run linting
+yarn nx affected -t lint      # Lint affected packages only
+yarn nx affected -t typecheck # Type check affected packages only
+```
+
+### Building
+```bash
+yarn build            # Build all packages
+yarn build:clean      # Clean and rebuild
+yarn nx affected -t build     # Build affected only
 ```
 
 ### Docker
 ```bash
-yarn docker:build              # Build Docker images and delete ephemeral volumes
-yarn docker:dev                # Start Ghost in Docker with hot reload
-yarn docker:shell              # Open shell in Ghost container
-yarn docker:mysql              # Open MySQL CLI
-yarn docker:test:unit          # Run unit tests in Docker
-yarn docker:reset              # Reset all Docker volumes (including database) and restart
+yarn docker:build     # Build Docker images
+yarn docker:dev       # Start Ghost in Docker
+yarn docker:shell     # Open shell in Ghost container
+yarn docker:mysql     # Open MySQL CLI
+yarn docker:reset     # Reset all Docker volumes and restart
 ```
 
-### How yarn dev works
+## Dependencies Between Packages
 
-The `yarn dev` command uses a **hybrid Docker + host development** setup:
-
-**What runs in Docker:**
-- Ghost Core backend (with hot-reload via mounted source)
-- MySQL, Redis, Mailpit
-- Caddy gateway/reverse proxy
-
-**What runs on host:**
-- Frontend dev servers (Admin, Portal, Comments UI, etc.) in watch mode with HMR
-- Foundation libraries (shade, admin-x-framework, etc.)
-
-**Setup:**
-```bash
-# Start everything (Docker + frontend dev servers)
-yarn dev
-
-# With optional services (uses Docker Compose file composition)
-yarn dev:analytics             # Include Tinybird analytics
-yarn dev:storage               # Include MinIO S3-compatible object storage
-yarn dev:all                   # Include all optional services
-```
-
-**Accessing Services:**
-- Ghost: `http://localhost:2368` (database: `ghost_dev`)
-- Mailpit UI: `http://localhost:8025` (email testing)
-- MySQL: `localhost:3306`
-- Redis: `localhost:6379`
-- Tinybird: `http://localhost:7181` (when analytics enabled)
-- MinIO Console: `http://localhost:9001` (when storage enabled)
-- MinIO S3 API: `http://localhost:9000` (when storage enabled)
-
-## Architecture Patterns
-
-### Admin Apps Integration (Micro-Frontend)
-
-**Build Process:**
-1. Admin-x React apps build to `apps/*/dist` using Vite
-2. `ghost/admin/lib/asset-delivery` copies them to `ghost/core/core/built/admin/assets/*`
-3. Ghost admin serves from `/ghost/assets/{app-name}/{app-name}.js`
-
-**Runtime Loading:**
-- Ember admin uses `AdminXComponent` to dynamically import React apps
-- React components wrapped in Suspense with error boundaries
-- Apps receive config via `additionalProps()` method
-
-### Public Apps Integration
-
-- Built as UMD bundles to `apps/*/umd/*.min.js`
-- Loaded via `<script>` tags in theme templates (injected by `{{ghost_head}}`)
-- Configuration passed via data attributes
-
-### i18n Architecture
-
-**Centralized Translations:**
-- Single source: `ghost/i18n/locales/{locale}/{namespace}.json`
-- Namespaces: `ghost`, `portal`, `signup-form`, `comments`, `search`
-- 60+ supported locales
-
-### Build Dependencies (Nx)
+Key dependency relationships to be aware of:
+- `ghost/core` depends on most other ghost/* packages
+- `apps/admin-x-*` apps are standalone React apps
+- `ghost/admin` (Ember) is being gradually replaced by admin-x apps
+- Shared types in `ghost/ghost/` packages
 
 Critical build order (Nx handles automatically):
 1. `shade` + `admin-x-design-system` build
@@ -168,6 +199,44 @@ Critical build order (Nx handles automatically):
 3. Admin apps build (depend on #2)
 4. `ghost/admin` builds (depends on #3, copies via asset-delivery)
 5. `ghost/core` serves admin build
+
+## Security Considerations
+
+1. **Input Validation**: All user input must be validated
+2. **SQL Injection**: Use Bookshelf ORM, never raw queries
+3. **XSS Prevention**: Sanitize all rendered content
+4. **CSRF Protection**: Built into Ghost's API
+5. **Rate Limiting**: Configured per endpoint
+
+## CI/CD Pipelines
+
+### Main CI Workflow (`.github/workflows/ci.yml`)
+- Runs on all PRs and pushes to main
+- Jobs: lint, unit tests, integration tests, E2E tests, browser tests
+- Uses Nx affected commands for efficiency
+
+### Security Scanning (`.github/workflows/security.yml`)
+- CodeQL analysis for JavaScript/TypeScript
+- npm audit for dependency vulnerabilities
+- Runs weekly and on PRs to main
+
+### TypeScript Check (`.github/workflows/typecheck.yml`)
+- Explicit type checking for all TypeScript packages
+- Uses `yarn nx affected -t typecheck`
+
+### Dependency Management
+- **Renovate** (`.github/renovate.json5`): Automated dependency updates with custom rules
+- **Dependabot** (`.github/dependabot.yml`): Additional automated updates for npm and GitHub Actions
+
+### Pre-commit Hooks
+- Configured via Husky (`.husky/`)
+- Runs lint-staged on main branch
+- Validates commit message format
+- Auto-removes submodules from commits
+
+### Code Formatting
+- **Prettier** (`.prettierrc`): Code formatting configuration
+- **ESLint**: Linting configuration per package (extends `eslint-plugin-ghost`)
 
 ## Code Guidelines
 
@@ -216,21 +285,23 @@ Users requested ability to switch themes for better accessibility
 - **New components:** Use `shade` (shadcn/ui-inspired)
 - **Legacy:** `admin-x-design-system` (being phased out, avoid for new work)
 
-### Analytics (Tinybird)
-- **Local development:** `yarn docker:dev:analytics` (starts Tinybird + MySQL)
-- **Config:** Add Tinybird config to `ghost/core/config.development.json`
-- **Scripts:** `ghost/core/core/server/data/tinybird/scripts/`
-- **Datafiles:** `ghost/core/core/server/data/tinybird/`
-
 ## Troubleshooting
 
 ### Build Issues
 ```bash
-yarn fix                       # Clean cache + node_modules + reinstall
-yarn build:clean               # Clean build artifacts
-yarn nx reset                  # Reset Nx cache
+yarn fix              # Clean cache + node_modules + reinstall
+yarn build:clean      # Clean build artifacts
+yarn nx reset         # Reset Nx cache
 ```
 
 ### Test Issues
 - **E2E failures:** Check `e2e/CLAUDE.md` for debugging tips
 - **Docker issues:** `yarn docker:clean && yarn docker:build`
+
+## Getting Help
+
+- Check existing code for patterns
+- Review tests for expected behavior
+- Ghost documentation: https://ghost.org/docs/
+- API documentation: https://docs.ghost.org/
+- See `CLAUDE.md` for additional guidance
